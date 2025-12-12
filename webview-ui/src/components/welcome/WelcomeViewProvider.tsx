@@ -343,127 +343,121 @@ const WelcomeViewProvider = () => {
 							setSelectedProvider(target.value as ProviderOption)
 						}}>
 						{/* Roo Code Cloud Provider Option */}
-						<div className="mb-4">
-							<VSCodeRadio value="roo" className="flex items-start gap-2">
-								<div className="flex-1 space-y-1 cursor-pointer">
-									<p className="text-lg font-semibold block -mt-1">
-										{t("welcome:providerSignup.rooCloudProvider")}
-									</p>
-									<p className="text-base text-vscode-descriptionForeground mt-0">
-										{t("welcome:providerSignup.rooCloudDescription")} (
-										<VSCodeLink
-											href="https://roocode.com/provider/pricing?utm_source=extension&utm_medium=welcome-screen&utm_campaign=provider-signup&utm_content=learn-more"
-											className="cursor-pointer">
-											{t("welcome:providerSignup.learnMore")}
-										</VSCodeLink>
-										).
-									</p>
-								</div>
-							</VSCodeRadio>
-						</div>
+						<VSCodeRadio value="roo" className="flex items-start gap-2">
+							<div className="flex-1 space-y-1 cursor-pointer">
+								<p className="text-lg font-semibold block -mt-1">
+									{t("welcome:providerSignup.rooCloudProvider")}
+								</p>
+								<p className="text-base text-vscode-descriptionForeground mt-0">
+									{t("welcome:providerSignup.rooCloudDescription")} (
+									<VSCodeLink
+										href="https://roocode.com/provider/pricing?utm_source=extension&utm_medium=welcome-screen&utm_campaign=provider-signup&utm_content=learn-more"
+										className="cursor-pointer">
+										{t("welcome:providerSignup.learnMore")}
+									</VSCodeLink>
+									).
+								</p>
+							</div>
+						</VSCodeRadio>
 
 						{/* Roo Token Provider Option */}
-						<div className="mb-4">
-							<VSCodeRadio value="roo-token" className="flex items-start gap-2">
-								<div className="flex-1 space-y-1 cursor-pointer">
-									<p className="text-lg font-semibold block -mt-1">
-										{t("welcome:providerSignup.rooTokenProvider") || "Use Roo Token"}
-									</p>
-									<p className="text-base text-vscode-descriptionForeground mt-0">
-										{t("welcome:providerSignup.rooTokenDescription") || "Enter your Roo token to access available models."}
-									</p>
-								</div>
-							</VSCodeRadio>
-							
-							{/* Token input section for roo-token provider - appears right below the radio button */}
-							<div className="border-l-2 border-vscode-panel-border pl-6 ml-[7px] mt-2">
-								<div
-									className={`overflow-clip transition-[max-height] ease-in-out duration-300 ${selectedProvider === "roo-token" ? "max-h-[600px]" : "max-h-0"}`}>
-									<div className="flex flex-col gap-4 mt-4">
-										<div>
-											<label className="block font-medium mb-2">
-												{t("welcome:providerSignup.tokenLabel") || "Roo Token"}
-											</label>
-											<VSCodeTextField
-												ref={tokenInputRef as any}
-												value={rooToken}
-												onInput={handleTokenChange}
-												placeholder={t("welcome:providerSignup.tokenPlaceholder") || "Enter your Roo token"}
-												className="w-full"
-												type="password"
-											/>
-											{tokenErrorMessage && (
-												<p className="text-vscode-errorForeground mt-2 text-sm">{tokenErrorMessage}</p>
-											)}
-										</div>
-
-										{isLoadingModels && (
-											<div className="flex items-center gap-2">
-												<VSCodeProgressRing className="size-4" />
-												<p className="text-sm text-vscode-descriptionForeground">
-													{t("welcome:providerSignup.loadingModels") || "Loading models..."}
-												</p>
-											</div>
-										)}
-
-										{Object.keys(availableModels).length > 0 && (
-											<div>
-												<label className="block font-medium mb-2">
-													{t("welcome:providerSignup.selectModel") || "Select Model"}
-												</label>
-												<select
-													value={selectedModelId}
-													onChange={(e) => {
-														setSelectedModelId(e.target.value)
-														setTokenErrorMessage(undefined)
-													}}
-													className="w-full p-2 border border-vscode-input-border bg-vscode-input-background text-vscode-input-foreground rounded">
-													<option value="">{t("welcome:providerSignup.selectModelPlaceholder") || "Select a model"}</option>
-													{Object.entries(availableModels).map(([modelId, modelInfo]: [string, any]) => (
-														<option key={modelId} value={modelId}>
-															{modelId} {modelInfo.description ? `- ${modelInfo.description}` : ""}
-														</option>
-													))}
-												</select>
-											</div>
-										)}
-									</div>
-								</div>
+						<VSCodeRadio value="roo-token" className="flex items-start gap-2">
+							<div className="flex-1 space-y-1 cursor-pointer">
+								<p className="text-lg font-semibold block -mt-1">
+									{t("welcome:providerSignup.rooTokenProvider") || "Use Roo Token"}
+								</p>
+								<p className="text-base text-vscode-descriptionForeground mt-0">
+									{t("welcome:providerSignup.rooTokenDescription") || "Enter your Roo token to access available models."}
+								</p>
 							</div>
-						</div>
+						</VSCodeRadio>
 
 						{/* Use Another Provider Option */}
-						<div className="mb-4">
-							<VSCodeRadio value="custom" className="flex items-start gap-2">
-								<div className="flex-1 space-y-1 cursor-pointer">
-									<p className="text-lg font-semibold block -mt-1">
-										{t("welcome:providerSignup.useAnotherProvider")}
-									</p>
-									<p className="text-base text-vscode-descriptionForeground mt-0">
-										{t("welcome:providerSignup.useAnotherProviderDescription")}
-									</p>
-								</div>
-							</VSCodeRadio>
-							
-							{/* Expand API options only when custom provider is selected */}
-							<div className="border-l-2 border-vscode-panel-border pl-6 ml-[7px] mt-2">
-								<div
-									className={`overflow-clip transition-[max-height] ease-in-out duration-300 ${selectedProvider === "custom" ? "max-h-[600px]" : "max-h-0"}`}>
-									<p className="text-base text-vscode-descriptionForeground mt-4">
-										{t("welcome:providerSignup.noApiKeys")}
-									</p>
-									<ApiOptions
-										fromWelcomeView
-										apiConfiguration={apiConfiguration || {}}
-										uriScheme={uriScheme}
-										setApiConfigurationField={setApiConfigurationFieldForApiOptions}
-										errorMessage={errorMessage}
-										setErrorMessage={setErrorMessage}
+						<VSCodeRadio value="custom" className="flex items-start gap-2">
+							<div className="flex-1 space-y-1 cursor-pointer">
+								<p className="text-lg font-semibold block -mt-1">
+									{t("welcome:providerSignup.useAnotherProvider")}
+								</p>
+								<p className="text-base text-vscode-descriptionForeground mt-0">
+									{t("welcome:providerSignup.useAnotherProviderDescription")}
+								</p>
+							</div>
+						</VSCodeRadio>
+					</VSCodeRadioGroup>
+
+					{/* Token input section for roo-token provider - appears right below the radio button */}
+					{selectedProvider === "roo-token" && (
+						<div className="border-l-2 border-vscode-panel-border pl-6 ml-[7px] mt-2 mb-4">
+							<div className="flex flex-col gap-4 mt-4">
+								<div>
+									<label className="block font-medium mb-2">
+										{t("welcome:providerSignup.tokenLabel") || "Roo Token"}
+									</label>
+									<VSCodeTextField
+										ref={tokenInputRef as any}
+										value={rooToken}
+										onInput={handleTokenChange}
+										placeholder={t("welcome:providerSignup.tokenPlaceholder") || "Enter your Roo token"}
+										className="w-full"
+										type="password"
 									/>
+									{tokenErrorMessage && (
+										<p className="text-vscode-errorForeground mt-2 text-sm">{tokenErrorMessage}</p>
+									)}
 								</div>
+
+								{isLoadingModels && (
+									<div className="flex items-center gap-2">
+										<VSCodeProgressRing className="size-4" />
+										<p className="text-sm text-vscode-descriptionForeground">
+											{t("welcome:providerSignup.loadingModels") || "Loading models..."}
+										</p>
+									</div>
+								)}
+
+								{Object.keys(availableModels).length > 0 && (
+									<div>
+										<label className="block font-medium mb-2">
+											{t("welcome:providerSignup.selectModel") || "Select Model"}
+										</label>
+										<select
+											value={selectedModelId}
+											onChange={(e) => {
+												setSelectedModelId(e.target.value)
+												setTokenErrorMessage(undefined)
+											}}
+											className="w-full p-2 border border-vscode-input-border bg-vscode-input-background text-vscode-input-foreground rounded">
+											<option value="">{t("welcome:providerSignup.selectModelPlaceholder") || "Select a model"}</option>
+											{Object.entries(availableModels).map(([modelId, modelInfo]: [string, any]) => (
+												<option key={modelId} value={modelId}>
+													{modelId} {modelInfo.description ? `- ${modelInfo.description}` : ""}
+												</option>
+											))}
+										</select>
+									</div>
+								)}
 							</div>
 						</div>
-					</VSCodeRadioGroup>
+					)}
+
+					{/* Expand API options only when custom provider is selected */}
+					{selectedProvider === "custom" && (
+						<div className="border-l-2 border-vscode-panel-border pl-6 ml-[7px] mt-2 mb-4">
+							<div className="mt-4">
+								<p className="text-base text-vscode-descriptionForeground mt-0">
+									{t("welcome:providerSignup.noApiKeys")}
+								</p>
+								<ApiOptions
+									fromWelcomeView
+									apiConfiguration={apiConfiguration || {}}
+									uriScheme={uriScheme}
+									setApiConfigurationField={setApiConfigurationFieldForApiOptions}
+									errorMessage={errorMessage}
+									setErrorMessage={setErrorMessage}
+								/>
+							</div>
+						</div>
+					)}
 				</div>
 
 				<div className="-mt-8">
