@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useDebounce } from "react-use"
 import {
 	VSCodeLink,
 	VSCodeProgressRing,
@@ -22,7 +23,7 @@ import RooHero from "./RooHero"
 import { Trans } from "react-i18next"
 import { ArrowLeft, ArrowRight, BadgeInfo } from "lucide-react"
 
-type ProviderOption = "roo" | "custom"
+type ProviderOption = "roo" | "roo-token" | "custom"
 
 const WelcomeViewProvider = () => {
 	const { apiConfiguration, currentApiConfigName, setApiConfiguration, uriScheme, cloudIsAuthenticated } =
@@ -35,6 +36,14 @@ const WelcomeViewProvider = () => {
 	const [manualUrl, setManualUrl] = useState("")
 	const [manualErrorMessage, setManualErrorMessage] = useState<boolean | undefined>(undefined)
 	const manualUrlInputRef = useRef<HTMLInputElement | null>(null)
+	
+	// Token-based provider state
+	const [rooToken, setRooToken] = useState("")
+	const [isLoadingModels, setIsLoadingModels] = useState(false)
+	const [availableModels, setAvailableModels] = useState<Record<string, any>>({})
+	const [selectedModelId, setSelectedModelId] = useState<string>("")
+	const [tokenErrorMessage, setTokenErrorMessage] = useState<string | undefined>(undefined)
+	const tokenInputRef = useRef<HTMLInputElement | null>(null)
 
 	// When auth completes during the provider signup flow, save the Roo config
 	// This will cause showWelcome to become false and navigate to chat
@@ -63,6 +72,15 @@ const WelcomeViewProvider = () => {
 		}
 	}, [showManualEntry])
 
+	// Focus the token input when roo-token option is selected
+	useEffect(() => {
+		if (selectedProvider === "roo-token" && tokenInputRef.current) {
+			setTimeout(() => {
+				tokenInputRef.current?.focus()
+			}, 50)
+		}
+	}, [selectedProvider])
+
 	// Memoize the setApiConfigurationField function to pass to ApiOptions
 	const setApiConfigurationFieldForApiOptions = useCallback(
 		<K extends keyof ProviderSettings>(field: K, value: ProviderSettings[K]) => {
@@ -81,6 +99,35 @@ const WelcomeViewProvider = () => {
 
 			// Show the waiting state
 			setAuthInProgress(true)
+		} else if (selectedProvider === "roo-token") {
+			// Token-based provider - validate token and model selection
+			if (!rooToken.trim()) {
+				setTokenErrorMessage("Please enter a token")
+				return
+			}
+
+			if (!selectedModelId) {
+				setTokenErrorMessage("Please select a model")
+				return
+			}
+
+			setTokenErrorMessage(undefined)
+			
+			// Save configuration with token and selected model
+			const rooTokenConfig: ProviderSettings = {
+				apiProvider: "roo",
+				apiModelId: selectedModelId,
+				// Note: We'll need to handle token storage separately
+				// For now, we'll save the config and handle token in backend
+			}
+			
+			vscode.postMessage({ 
+				type: "upsertApiConfiguration", 
+				text: currentApiConfigName, 
+				apiConfiguration: rooTokenConfig,
+				// Include token in values for backend to handle
+				values: { token: rooToken.trim() },
+			})
 		} else {
 			// Use custom provider - validate first
 			const error = apiConfiguration ? validateApiConfiguration(apiConfiguration) : undefined
@@ -93,7 +140,7 @@ const WelcomeViewProvider = () => {
 			setErrorMessage(undefined)
 			vscode.postMessage({ type: "upsertApiConfiguration", text: currentApiConfigName, apiConfiguration })
 		}
-	}, [selectedProvider, apiConfiguration, currentApiConfigName])
+	}, [selectedProvider, apiConfiguration, currentApiConfigName, rooToken, selectedModelId])
 
 	const handleGoBack = useCallback(() => {
 		setAuthInProgress(false)
@@ -128,6 +175,59 @@ const WelcomeViewProvider = () => {
 	const handleOpenSignupUrl = () => {
 		vscode.postMessage({ type: "rooCloudSignIn", useProviderSignup: true })
 	}
+
+	// Handle token input change
+	const handleTokenChange = useCallback((e: any) => {
+		const token = e.target.value
+		setRooToken(token)
+		setTokenErrorMessage(undefined)
+	}, [])
+
+	// Debounced token validation and model fetching
+	useDebounce(
+		() => {
+			if (rooToken.trim().length > 0) {
+				setIsLoadingModels(true)
+				// Request models from backend using the token
+				vscode.postMessage({
+					type: "requestRooModelsWithToken",
+					token: rooToken.trim(),
+				})
+			} else {
+				setAvailableModels({})
+				setSelectedModelId("")
+				setIsLoadingModels(false)
+			}
+		},
+		500, // 500ms debounce delay
+		[rooToken],
+	)
+
+	// Listen for model fetch response
+	useEffect(() => {
+		const handleMessage = (event: MessageEvent) => {
+			const message = event.data
+			
+			if (message.type === "rooModelsWithTokenResponse") {
+				setIsLoadingModels(false)
+				if (message.success) {
+					setAvailableModels(message.models || {})
+					setTokenErrorMessage(undefined)
+					// Auto-select first model if available
+					if (message.models && Object.keys(message.models).length > 0 && !selectedModelId) {
+						const firstModelId = Object.keys(message.models)[0]
+						setSelectedModelId(firstModelId)
+					}
+				} else {
+					setTokenErrorMessage(message.error || "Failed to fetch models")
+					setAvailableModels({})
+				}
+			}
+		}
+
+		window.addEventListener("message", handleMessage)
+		return () => window.removeEventListener("message", handleMessage)
+	}, [selectedModelId])
 
 	// Render the waiting for cloud state
 	if (authInProgress) {
@@ -243,57 +343,134 @@ const WelcomeViewProvider = () => {
 							setSelectedProvider(target.value as ProviderOption)
 						}}>
 						{/* Roo Code Cloud Provider Option */}
-						<VSCodeRadio value="roo" className="flex items-start gap-2">
-							<div className="flex-1 space-y-1 cursor-pointer">
-								<p className="text-lg font-semibold block -mt-1">
-									{t("welcome:providerSignup.rooCloudProvider")}
-								</p>
-								<p className="text-base text-vscode-descriptionForeground mt-0">
-									{t("welcome:providerSignup.rooCloudDescription")} (
-									<VSCodeLink
-										href="https://roocode.com/provider/pricing?utm_source=extension&utm_medium=welcome-screen&utm_campaign=provider-signup&utm_content=learn-more"
-										className="cursor-pointer">
-										{t("welcome:providerSignup.learnMore")}
-									</VSCodeLink>
-									).
-								</p>
+						<div className="mb-4">
+							<VSCodeRadio value="roo" className="flex items-start gap-2">
+								<div className="flex-1 space-y-1 cursor-pointer">
+									<p className="text-lg font-semibold block -mt-1">
+										{t("welcome:providerSignup.rooCloudProvider")}
+									</p>
+									<p className="text-base text-vscode-descriptionForeground mt-0">
+										{t("welcome:providerSignup.rooCloudDescription")} (
+										<VSCodeLink
+											href="https://roocode.com/provider/pricing?utm_source=extension&utm_medium=welcome-screen&utm_campaign=provider-signup&utm_content=learn-more"
+											className="cursor-pointer">
+											{t("welcome:providerSignup.learnMore")}
+										</VSCodeLink>
+										).
+									</p>
+								</div>
+							</VSCodeRadio>
+						</div>
+
+						{/* Roo Token Provider Option */}
+						<div className="mb-4">
+							<VSCodeRadio value="roo-token" className="flex items-start gap-2">
+								<div className="flex-1 space-y-1 cursor-pointer">
+									<p className="text-lg font-semibold block -mt-1">
+										{t("welcome:providerSignup.rooTokenProvider") || "Use Roo Token"}
+									</p>
+									<p className="text-base text-vscode-descriptionForeground mt-0">
+										{t("welcome:providerSignup.rooTokenDescription") || "Enter your Roo token to access available models."}
+									</p>
+								</div>
+							</VSCodeRadio>
+							
+							{/* Token input section for roo-token provider - appears right below the radio button */}
+							<div className="border-l-2 border-vscode-panel-border pl-6 ml-[7px] mt-2">
+								<div
+									className={`overflow-clip transition-[max-height] ease-in-out duration-300 ${selectedProvider === "roo-token" ? "max-h-[600px]" : "max-h-0"}`}>
+									<div className="flex flex-col gap-4 mt-4">
+										<div>
+											<label className="block font-medium mb-2">
+												{t("welcome:providerSignup.tokenLabel") || "Roo Token"}
+											</label>
+											<VSCodeTextField
+												ref={tokenInputRef as any}
+												value={rooToken}
+												onInput={handleTokenChange}
+												placeholder={t("welcome:providerSignup.tokenPlaceholder") || "Enter your Roo token"}
+												className="w-full"
+												type="password"
+											/>
+											{tokenErrorMessage && (
+												<p className="text-vscode-errorForeground mt-2 text-sm">{tokenErrorMessage}</p>
+											)}
+										</div>
+
+										{isLoadingModels && (
+											<div className="flex items-center gap-2">
+												<VSCodeProgressRing className="size-4" />
+												<p className="text-sm text-vscode-descriptionForeground">
+													{t("welcome:providerSignup.loadingModels") || "Loading models..."}
+												</p>
+											</div>
+										)}
+
+										{Object.keys(availableModels).length > 0 && (
+											<div>
+												<label className="block font-medium mb-2">
+													{t("welcome:providerSignup.selectModel") || "Select Model"}
+												</label>
+												<select
+													value={selectedModelId}
+													onChange={(e) => {
+														setSelectedModelId(e.target.value)
+														setTokenErrorMessage(undefined)
+													}}
+													className="w-full p-2 border border-vscode-input-border bg-vscode-input-background text-vscode-input-foreground rounded">
+													<option value="">{t("welcome:providerSignup.selectModelPlaceholder") || "Select a model"}</option>
+													{Object.entries(availableModels).map(([modelId, modelInfo]: [string, any]) => (
+														<option key={modelId} value={modelId}>
+															{modelId} {modelInfo.description ? `- ${modelInfo.description}` : ""}
+														</option>
+													))}
+												</select>
+											</div>
+										)}
+									</div>
+								</div>
 							</div>
-						</VSCodeRadio>
+						</div>
 
 						{/* Use Another Provider Option */}
-						<VSCodeRadio value="custom" className="flex items-start gap-2">
-							<div className="flex-1 space-y-1 cursor-pointer">
-								<p className="text-lg font-semibold block -mt-1">
-									{t("welcome:providerSignup.useAnotherProvider")}
-								</p>
-								<p className="text-base text-vscode-descriptionForeground mt-0">
-									{t("welcome:providerSignup.useAnotherProviderDescription")}
-								</p>
+						<div className="mb-4">
+							<VSCodeRadio value="custom" className="flex items-start gap-2">
+								<div className="flex-1 space-y-1 cursor-pointer">
+									<p className="text-lg font-semibold block -mt-1">
+										{t("welcome:providerSignup.useAnotherProvider")}
+									</p>
+									<p className="text-base text-vscode-descriptionForeground mt-0">
+										{t("welcome:providerSignup.useAnotherProviderDescription")}
+									</p>
+								</div>
+							</VSCodeRadio>
+							
+							{/* Expand API options only when custom provider is selected */}
+							<div className="border-l-2 border-vscode-panel-border pl-6 ml-[7px] mt-2">
+								<div
+									className={`overflow-clip transition-[max-height] ease-in-out duration-300 ${selectedProvider === "custom" ? "max-h-[600px]" : "max-h-0"}`}>
+									<p className="text-base text-vscode-descriptionForeground mt-4">
+										{t("welcome:providerSignup.noApiKeys")}
+									</p>
+									<ApiOptions
+										fromWelcomeView
+										apiConfiguration={apiConfiguration || {}}
+										uriScheme={uriScheme}
+										setApiConfigurationField={setApiConfigurationFieldForApiOptions}
+										errorMessage={errorMessage}
+										setErrorMessage={setErrorMessage}
+									/>
+								</div>
 							</div>
-						</VSCodeRadio>
-					</VSCodeRadioGroup>
-
-					{/* Expand API options only when custom provider is selected, max height is used to force a transition */}
-					<div className="mb-8 border-l-2 border-vscode-panel-border pl-6 ml-[7px]">
-						<div
-							className={`overflow-clip transition-[max-height] ease-in-out duration-300 ${selectedProvider === "custom" ? "max-h-[600px]" : "max-h-0"}`}>
-							<p className="text-base text-vscode-descriptionForeground mt-0">
-								{t("welcome:providerSignup.noApiKeys")}
-							</p>
-							<ApiOptions
-								fromWelcomeView
-								apiConfiguration={apiConfiguration || {}}
-								uriScheme={uriScheme}
-								setApiConfigurationField={setApiConfigurationFieldForApiOptions}
-								errorMessage={errorMessage}
-								setErrorMessage={setErrorMessage}
-							/>
 						</div>
-					</div>
+					</VSCodeRadioGroup>
 				</div>
 
 				<div className="-mt-8">
-					<Button onClick={handleGetStarted} variant="primary">
+					<Button 
+						onClick={handleGetStarted} 
+						variant="primary"
+						disabled={selectedProvider === "roo-token" && (!rooToken.trim() || !selectedModelId)}>
 						{t("welcome:providerSignup.getStarted")} →
 					</Button>
 				</div>
