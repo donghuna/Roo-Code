@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Check, X } from "lucide-react"
 import { VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react"
 
@@ -111,15 +111,15 @@ export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMat
 
 	return (
 		<>
+			<label className="block font-medium mb-1">CodeMate API Key</label>
 			<DecoratedVSCodeTextField
 				value={apiConfiguration?.openAiApiKey || ""}
 				type="password"
 				onInput={handleInputChange("openAiApiKey")}
 				placeholder={t("settings:placeholders.apiKey")}
 				className="w-full"
-				rightNodes={getRightNodes()}>
-				<label className="block font-medium mb-1">{t("settings:providers.openAiApiKey")}</label>
-			</DecoratedVSCodeTextField>
+				rightNodes={getRightNodes()}
+			/>
 			<div className="text-sm text-vscode-descriptionForeground -mt-2">
 				{t("settings:providers.apiKeyStorageNotice")}
 			</div>
