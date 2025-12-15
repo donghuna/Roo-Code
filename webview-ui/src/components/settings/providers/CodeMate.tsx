@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useEvent } from "react-use"
 import { Check, X } from "lucide-react"
 import { VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react"
 
-import type { ProviderSettings } from "@roo-code/types"
+import type { ProviderSettings, ModelInfo } from "@roo-code/types"
+import { ExtensionMessage } from "@roo/ExtensionMessage"
+import { openAiModelInfoSaneDefaults } from "@roo-code/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { VSCodeButtonLink } from "@src/components/common/VSCodeButtonLink"
 import { DecoratedVSCodeTextField } from "@src/components/common/DecoratedVSCodeTextField"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/components/ui"
 import { vscode } from "@src/utils/vscode"
-import { validateApiConfiguration } from "@src/utils/validate"
 
 import { inputEventTransform } from "../transforms"
 
@@ -23,7 +26,9 @@ type CodeMateProps = {
 export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMateProps) => {
 	const { t } = useAppTranslation()
 	const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+	const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 	const [validationStatus, setValidationStatus] = useState<ValidationStatus>("idle")
+	const [openAiModels, setOpenAiModels] = useState<Record<string, ModelInfo> | null>(null)
 
 	const handleInputChange = useCallback(
 		<K extends keyof ProviderSettings, E>(
@@ -47,26 +52,34 @@ export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMat
 				debounceTimeoutRef.current = setTimeout(() => {
 					setApiConfigurationField(field, value)
 
-					// Validate token after debounce
+					// Validate CodeMate API Key after debounce (TEST MODE: Always succeeds)
 					if (field === "openAiApiKey") {
 						if (!value) {
 							setValidationStatus("idle")
+							setOpenAiModels(null)
 							return
 						}
 
 						setValidationStatus("validating")
 
-						const configToValidate: ProviderSettings = {
-							...apiConfiguration,
-							openAiApiKey: value as string,
+						// Clear existing validation timeout
+						if (validationTimeoutRef.current) {
+							clearTimeout(validationTimeoutRef.current)
 						}
 
-						const validationError = validateApiConfiguration(configToValidate)
-
-						if (validationError) {
-							setValidationStatus("invalid")
-						} else {
+						// Simulate validation delay
+						validationTimeoutRef.current = setTimeout(() => {
+							// TEST MODE: Always set to valid for testing
 							setValidationStatus("valid")
+
+							// TEST MODE: Set test models data
+							const testModels = {
+								"gpt-4o": openAiModelInfoSaneDefaults,
+								"gpt-4o-mini": openAiModelInfoSaneDefaults,
+								"gpt-4-turbo": openAiModelInfoSaneDefaults,
+								"gpt-3.5-turbo": openAiModelInfoSaneDefaults,
+							}
+							setOpenAiModels(testModels)
 
 							// If validation passes (no error), fetch models
 							if (apiConfiguration?.openAiBaseUrl) {
@@ -80,18 +93,36 @@ export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMat
 									},
 								})
 							}
-						}
+						}, 1000) // Simulate 1 second validation delay
 					}
 				}, 500) // 500ms debounce delay
 			},
 		[setApiConfigurationField, apiConfiguration],
 	)
 
-	// Cleanup timeout on unmount
+	// Listen for model updates from extension
+	const onMessage = useCallback((event: MessageEvent) => {
+		const message: ExtensionMessage = event.data
+
+		switch (message.type) {
+			case "openAiModels": {
+				const updatedModels = message.openAiModels ?? []
+				setOpenAiModels(Object.fromEntries(updatedModels.map((item) => [item, openAiModelInfoSaneDefaults])))
+				break
+			}
+		}
+	}, [])
+
+	useEvent("message", onMessage)
+
+	// Cleanup timeouts on unmount
 	useEffect(() => {
 		return () => {
 			if (debounceTimeoutRef.current) {
 				clearTimeout(debounceTimeoutRef.current)
+			}
+			if (validationTimeoutRef.current) {
+				clearTimeout(validationTimeoutRef.current)
 			}
 		}
 	}, [])
@@ -126,6 +157,25 @@ export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMat
 			<VSCodeButtonLink href="https://codemate.samsungds.net/token" appearance="secondary">
 				{t("settings:providers.getCodeMateApiKey")}
 			</VSCodeButtonLink>
+			{validationStatus === "valid" && openAiModels && Object.keys(openAiModels).length > 0 && (
+				<div className="mt-4">
+					<label className="block font-medium mb-1">Model</label>
+					<Select
+						value={apiConfiguration?.openAiModelId || ""}
+						onValueChange={(value) => setApiConfigurationField("openAiModelId", value)}>
+						<SelectTrigger className="w-full">
+							<SelectValue placeholder={t("settings:common.select")} />
+						</SelectTrigger>
+						<SelectContent>
+							{Object.keys(openAiModels).map((modelId) => (
+								<SelectItem key={modelId} value={modelId}>
+									{modelId}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+			)}
 		</>
 	)
 }
