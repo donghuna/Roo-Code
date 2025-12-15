@@ -14,6 +14,7 @@ import { validateApiConfiguration } from "@src/utils/validate"
 import { vscode } from "@src/utils/vscode"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button } from "@src/components/ui"
+import { CodeMate } from "../settings/providers/CodeMate"
 
 import ApiOptions from "../settings/ApiOptions"
 import { Tab, TabContent } from "../common/Tab"
@@ -22,19 +23,24 @@ import RooHero from "./RooHero"
 import { Trans } from "react-i18next"
 import { ArrowLeft, ArrowRight, BadgeInfo } from "lucide-react"
 
-type ProviderOption = "roo" | "custom"
+type ProviderOption = "roo" | "custom" | "codemate"
 
 const WelcomeViewProvider = () => {
 	const { apiConfiguration, currentApiConfigName, setApiConfiguration, uriScheme, cloudIsAuthenticated } =
 		useExtensionState()
 	const { t } = useAppTranslation()
 	const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
-	const [selectedProvider, setSelectedProvider] = useState<ProviderOption>("roo")
+	const [selectedProvider, setSelectedProvider] = useState<ProviderOption>("codemate")
 	const [authInProgress, setAuthInProgress] = useState(false)
 	const [showManualEntry, setShowManualEntry] = useState(false)
 	const [manualUrl, setManualUrl] = useState("")
 	const [manualErrorMessage, setManualErrorMessage] = useState<boolean | undefined>(undefined)
 	const manualUrlInputRef = useRef<HTMLInputElement | null>(null)
+	const [codemateSettings, setCodemateSettings] = useState<ProviderSettings>({
+		apiProvider: "openai",
+		openAiBaseUrl: "http://im-light-prd.kspprd.dks.cloud.samsungds.net/v1/alt",
+		openAiModelId: "",
+	})
 
 	// When auth completes during the provider signup flow, save the Roo config
 	// This will cause showWelcome to become false and navigate to chat
@@ -71,16 +77,39 @@ const WelcomeViewProvider = () => {
 		[setApiConfiguration], // setApiConfiguration from context is stable
 	)
 
-	const handleGetStarted = useCallback(() => {
-		if (selectedProvider === "roo") {
-			// Trigger cloud sign-in with provider signup flow
-			// NOTE: We intentionally do NOT save the API configuration yet.
-			// The configuration will be saved by the extension after auth completes.
-			// This keeps showWelcome true so we can show the waiting state.
-			vscode.postMessage({ type: "rooCloudSignIn", useProviderSignup: true })
+	// Memorize the setApiConfigurationField function to pass to ApiOptions
+	const setApiConfigurationField = useCallback(
+		<K extends keyof ProviderSettings>(field: K, value: ProviderSettings[K]) => {
+			setCodemateSettings({ [field]: value })
+		},
+		[setCodemateSettings],
+	)
 
-			// Show the waiting state
-			setAuthInProgress(true)
+	const handleGetStarted = useCallback(() => {
+		// if (selectedProvider === "roo") {
+		// 	// Trigger cloud sign-in with provider signup flow
+		// 	// NOTE: We intentionally do NOT save the API configuration yet.
+		// 	// The configuration will be saved by the extension after auth completes.
+		// 	// This keeps showWelcome true so we can show the waiting state.
+		// 	vscode.postMessage({ type: "rooCloudSignIn", useProviderSignup: true })
+
+		// 	// Show the waiting state
+		// 	setAuthInProgress(true)
+		// } else {
+		if (selectedProvider === "codemate") {
+			const error = codemateSettings ? validateApiConfiguration(codemateSettings) : undefined
+
+			if (error) {
+				setErrorMessage(error)
+				return
+			}
+
+			setErrorMessage(undefined)
+			vscode.postMessage({
+				type: "upsertApiConfiguration",
+				text: currentApiConfigName,
+				apiConfiguration: codemateSettings,
+			})
 		} else {
 			// Use custom provider - validate first
 			const error = apiConfiguration ? validateApiConfiguration(apiConfiguration) : undefined
@@ -93,7 +122,7 @@ const WelcomeViewProvider = () => {
 			setErrorMessage(undefined)
 			vscode.postMessage({ type: "upsertApiConfiguration", text: currentApiConfigName, apiConfiguration })
 		}
-	}, [selectedProvider, apiConfiguration, currentApiConfigName])
+	}, [selectedProvider, apiConfiguration, currentApiConfigName, codemateSettings])
 
 	const handleGoBack = useCallback(() => {
 		setAuthInProgress(false)
@@ -257,6 +286,32 @@ const WelcomeViewProvider = () => {
 									</VSCodeLink>
 									).
 								</p>
+							</div>
+						</VSCodeRadio>
+
+						{/* CodeMate Provider Option */}
+						<VSCodeRadio value="codemate" className="flex items-start gap-2">
+							<div className="flex-1 space-y-1 cursor-pointer">
+								<p className="text-lg font-semibold block -mt-1">
+									{t("welcome:providerSignup.codemateProvider")}
+								</p>
+								<p className="text-base text-vscode-descriptionForeground mt-0">
+									{t("welcome:providerSignup.codemateDescription")}
+								</p>
+							</div>
+
+							{/* Expand API options only when custom provider is selected, max height is used to force a transition */}
+							<div className="mb-8 border-l-2 border-vscode-panel-border pl-6 ml-[7px]">
+								<div
+									className={`overflow-clip transition-[max-height] ease-in-out duration-300 ${selectedProvider === "codemate" ? "max-h-[600px]" : "max-h-0"}`}>
+									<p className="flex flex-col gap-3">
+										<CodeMate
+											apiConfiguration={codemateSettings}
+											setApiConfigurationField={setApiConfigurationField}
+											simplifySettings={true}
+										/>
+									</p>
+								</div>
 							</div>
 						</VSCodeRadio>
 
