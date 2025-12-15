@@ -31,14 +31,6 @@ export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMat
 	return (
 		<>
 			<VSCodeTextField
-				value={apiConfiguration?.openAiBaseUrl || ""}
-				type="url"
-				onInput={handleInputChange("openAiBaseUrl")}
-				placeholder={t("settings:placeholders.baseUrl")}
-				className="w-full">
-				<label className="block font-medium mb-1">{t("settings:providers.openAiBaseUrl")}</label>
-			</VSCodeTextField>
-			<VSCodeTextField
 				value={apiConfiguration?.openAiApiKey || ""}
 				type="password"
 				onInput={handleInputChange("openAiApiKey")}
