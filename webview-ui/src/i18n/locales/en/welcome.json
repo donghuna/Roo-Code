@@ -21,6 +21,8 @@
 		"rooCloudProvider": "Roo Code Cloud Provider",
 		"rooCloudDescription": "The simplest way to use Roo. A curated mix of free and paid models at a low cost",
 		"learnMore": "learn more",
+		"codemateProvider": "CodeMate Provider",
+		"codemateDescription": "Samsung's internal AI coding assistant provider",
 		"useAnotherProvider": "Use another provider",
 		"useAnotherProviderDescription": "Enter an API key and get going.",
 		"noApiKeys": "Don't want to deal with keys? Go with the Roo Code Cloud Provider.",

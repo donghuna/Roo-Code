@@ -21,6 +21,8 @@
 		"rooCloudProvider": "Roo Code Cloud 제공업체",
 		"rooCloudDescription": "Roo를 사용하는 가장 간단한 방법. 저렴한 비용으로 무료 및 유료 모델을 선별하여 제공",
 		"learnMore": "자세히 알아보기",
+		"codemateProvider": "CodeMate 제공업체",
+		"codemateDescription": "삼성 내부 AI 코딩 어시스턴트 제공업체",
 		"useAnotherProvider": "다른 제공업체 사용",
 		"useAnotherProviderDescription": "API 키를 입력하고 시작하세요.",
 		"noApiKeys": "키를 다루기 싫으세요? Roo Code Cloud 제공업체를 선택하세요.",
