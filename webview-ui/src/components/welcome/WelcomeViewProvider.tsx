@@ -1,11 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import {
-	VSCodeLink,
-	VSCodeProgressRing,
-	VSCodeRadio,
-	VSCodeRadioGroup,
-	VSCodeTextField,
-} from "@vscode/webview-ui-toolkit/react"
+import { VSCodeProgressRing, VSCodeRadio, VSCodeRadioGroup, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 
 import type { ProviderSettings } from "@roo-code/types"
 
@@ -80,9 +74,9 @@ const WelcomeViewProvider = () => {
 	// Memorize the setApiConfigurationField function to pass to ApiOptions
 	const setApiConfigurationField = useCallback(
 		<K extends keyof ProviderSettings>(field: K, value: ProviderSettings[K]) => {
-			setCodemateSettings({ [field]: value })
+			setCodemateSettings((prev) => ({ ...prev, [field]: value }))
 		},
-		[setCodemateSettings],
+		[],
 	)
 
 	const handleGetStarted = useCallback(() => {
@@ -253,7 +247,7 @@ const WelcomeViewProvider = () => {
 				<h2 className="mt-0 mb-0 text-xl">{t("welcome:greeting")}</h2>
 
 				<div className="text-base text-vscode-foreground space-y-3">
-					{selectedProvider === "roo" && (
+					{selectedProvider === "codemate" && (
 						<p>
 							<Trans i18nKey="welcome:introduction" />
 						</p>
@@ -272,7 +266,7 @@ const WelcomeViewProvider = () => {
 							setSelectedProvider(target.value as ProviderOption)
 						}}>
 						{/* Roo Code Cloud Provider Option */}
-						<VSCodeRadio value="roo" className="flex items-start gap-2">
+						{/* <VSCodeRadio value="roo" className="flex items-start gap-2">
 							<div className="flex-1 space-y-1 cursor-pointer">
 								<p className="text-lg font-semibold block -mt-1">
 									{t("welcome:providerSignup.rooCloudProvider")}
@@ -287,7 +281,7 @@ const WelcomeViewProvider = () => {
 									).
 								</p>
 							</div>
-						</VSCodeRadio>
+						</VSCodeRadio> */}
 
 						{/* CodeMate Provider Option */}
 						<VSCodeRadio value="codemate" className="flex items-start gap-2">
