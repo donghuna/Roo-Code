@@ -364,6 +364,8 @@
 		"huggingFaceSelectProvider": "Select a provider...",
 		"huggingFaceSearchProviders": "Search providers...",
 		"huggingFaceNoProvidersFound": "No providers found",
+		"codemateApiKey": "CodeMate API Key",
+		"getCodeMateApiKey": "Get CodeMate API Key",
 		"getGeminiApiKey": "Get Gemini API Key",
 		"openAiApiKey": "OpenAI API Key",
 		"apiKey": "API Key",

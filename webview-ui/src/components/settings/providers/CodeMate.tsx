@@ -46,8 +46,14 @@ export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMat
 			return
 		}
 
-		// Only validate if there's an API key and we're not currently validating or typing
-		if (currentApiKey && validationStatus !== "validating" && validationStatus !== "idle") {
+		// Only validate if there's an API key, we're not currently validating, and status is not already valid
+		// This prevents re-validation when handleInputChange already validated the token
+		if (
+			currentApiKey &&
+			validationStatus !== "validating" &&
+			validationStatus !== "valid" &&
+			validationStatus !== "idle"
+		) {
 			const validTestTokens = ["test", "valid-token", "codemate-test"]
 
 			// Validate the current API key
@@ -133,6 +139,9 @@ export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMat
 								}
 								setOpenAiModels(testModels)
 
+								// Update lastValidatedKeyRef to prevent re-validation
+								lastValidatedKeyRef.current = tokenValue
+
 								// If validation passes (no error), fetch models
 								// Use ref to get the latest value without causing re-renders
 								const currentConfig = apiConfigurationRef.current
@@ -151,6 +160,7 @@ export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMat
 								// Invalid token - set to invalid
 								setValidationStatus("invalid")
 								setOpenAiModels(null)
+								lastValidatedKeyRef.current = tokenValue
 							}
 						}, 1000) // Simulate 1 second validation delay
 					}
@@ -160,16 +170,17 @@ export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMat
 	)
 
 	// Listen for model updates from extension
+	// Disabled in test mode to prevent empty model list from extension overwriting test data
 	const onMessage = useCallback((event: MessageEvent) => {
 		const message: ExtensionMessage = event.data
 
-		switch (message.type) {
-			case "openAiModels": {
-				const updatedModels = message.openAiModels ?? []
-				setOpenAiModels(Object.fromEntries(updatedModels.map((item) => [item, openAiModelInfoSaneDefaults])))
-				break
-			}
-		}
+		// switch (message.type) {
+		// 	case "openAiModels": {
+		// 		const updatedModels = message.openAiModels ?? []
+		// 		setOpenAiModels(Object.fromEntries(updatedModels.map((item) => [item, openAiModelInfoSaneDefaults])))
+		// 		break
+		// 	}
+		// }
 	}, [])
 
 	useEvent("message", onMessage)
@@ -201,7 +212,7 @@ export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMat
 
 	return (
 		<>
-			<label className="block font-medium mb-0">CodeMate API Key</label>
+			<label className="block font-medium mb-0">{t("settings:codemateApiKey")}</label>
 			<DecoratedVSCodeTextField
 				value={apiConfiguration?.openAiApiKey || ""}
 				type="password"
