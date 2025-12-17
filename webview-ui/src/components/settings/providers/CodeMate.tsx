@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useEvent } from "react-use"
 import { Check, X } from "lucide-react"
-import { VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react"
+import { VSCodeProgressRing, VSCodeDropdown, VSCodeOption } from "@vscode/webview-ui-toolkit/react"
 
 import type { ProviderSettings, ModelInfo } from "@roo-code/types"
 import { ExtensionMessage } from "@roo/ExtensionMessage"
@@ -10,7 +10,6 @@ import { openAiModelInfoSaneDefaults } from "@roo-code/types"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { VSCodeButtonLink } from "@src/components/common/VSCodeButtonLink"
 import { DecoratedVSCodeTextField } from "@src/components/common/DecoratedVSCodeTextField"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@src/components/ui"
 import { vscode } from "@src/utils/vscode"
 
 import { inputEventTransform } from "../transforms"
@@ -230,20 +229,19 @@ export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMat
 			{validationStatus === "valid" && openAiModels && Object.keys(openAiModels).length > 0 && (
 				<div className="mt-4">
 					<label className="block font-medium mb-1">Model</label>
-					<Select
+					<VSCodeDropdown
 						value={apiConfiguration?.openAiModelId || ""}
-						onValueChange={(value) => setApiConfigurationField("openAiModelId", value)}>
-						<SelectTrigger className="w-full">
-							<SelectValue placeholder={t("settings:common.select")} />
-						</SelectTrigger>
-						<SelectContent>
-							{Object.keys(openAiModels).map((modelId) => (
-								<SelectItem key={modelId} value={modelId}>
-									{modelId}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+						onChange={(e) => {
+							const target = e.target as HTMLSelectElement
+							setApiConfigurationField("openAiModelId", target.value)
+						}}
+						className="w-full">
+						{Object.keys(openAiModels).map((modelId) => (
+							<VSCodeOption key={modelId} value={modelId}>
+								{modelId}
+							</VSCodeOption>
+						))}
+					</VSCodeDropdown>
 				</div>
 			)}
 		</>
