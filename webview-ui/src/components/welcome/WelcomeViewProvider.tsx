@@ -8,7 +8,7 @@ import { validateApiConfiguration } from "@src/utils/validate"
 import { vscode } from "@src/utils/vscode"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button } from "@src/components/ui"
-import { CodeMate } from "../settings/providers/CodeMate"
+import { CodeMate } from "../settings/providers"
 
 import ApiOptions from "../settings/ApiOptions"
 import { Tab, TabContent } from "../common/Tab"
@@ -32,7 +32,7 @@ const WelcomeViewProvider = () => {
 	const manualUrlInputRef = useRef<HTMLInputElement | null>(null)
 	const [codemateSettings, setCodemateSettings] = useState<ProviderSettings>({
 		apiProvider: "openai",
-		openAiBaseUrl: "http://sw.samsungds.net:8008/v1/roo",
+		openAiBaseUrl: process.env.CODEMATE_BASE_URL || "http://sw.samsungds.net:8008/v1/roo",
 		openAiModelId: "",
 	})
 
@@ -80,16 +80,6 @@ const WelcomeViewProvider = () => {
 	)
 
 	const handleGetStarted = useCallback(() => {
-		// if (selectedProvider === "roo") {
-		// 	// Trigger cloud sign-in with provider signup flow
-		// 	// NOTE: We intentionally do NOT save the API configuration yet.
-		// 	// The configuration will be saved by the extension after auth completes.
-		// 	// This keeps showWelcome true so we can show the waiting state.
-		// 	vscode.postMessage({ type: "rooCloudSignIn", useProviderSignup: true })
-
-		// 	// Show the waiting state
-		// 	setAuthInProgress(true)
-		// } else {
 		if (selectedProvider === "codemate") {
 			const error = codemateSettings ? validateApiConfiguration(codemateSettings) : undefined
 

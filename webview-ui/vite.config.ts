@@ -64,6 +64,7 @@ export default defineConfig(({ mode }) => {
 		"process.env.PKG_NAME": JSON.stringify(pkg.name),
 		"process.env.PKG_VERSION": JSON.stringify(pkg.version),
 		"process.env.PKG_OUTPUT_CHANNEL": JSON.stringify("Roo-Code"),
+		"process.env.CODEMATE_BASE_URL": JSON.stringify(process.env.CODEMATE_BASE_URL || ""),
 		...(gitSha ? { "process.env.PKG_SHA": JSON.stringify(gitSha) } : {}),
 	}
 
