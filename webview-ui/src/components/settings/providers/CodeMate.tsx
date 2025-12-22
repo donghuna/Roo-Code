@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { type JSX, useCallback, useEffect, useRef, useState } from "react"
 import { useEvent } from "react-use"
 import { Check, X } from "lucide-react"
 import { VSCodeProgressRing, VSCodeDropdown, VSCodeOption } from "@vscode/webview-ui-toolkit/react"
@@ -22,10 +22,9 @@ type CodeMateProps = {
 	simplifySettings?: boolean
 }
 
-export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMateProps) => {
+export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMateProps): JSX.Element => {
 	const { t } = useAppTranslation()
 	const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-	const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 	const apiConfigurationRef = useRef(apiConfiguration)
 	const lastValidatedKeyRef = useRef<string | null>(null)
 	const [validationStatus, setValidationStatus] = useState<ValidationStatus>("idle")
@@ -144,43 +143,52 @@ export const CodeMate = ({ apiConfiguration, setApiConfigurationField }: CodeMat
 	)
 
 	// Listen for model updates from extension
-	const onMessage = useCallback((event: MessageEvent) => {
-		const message: ExtensionMessage = event.data
+	const onMessage = useCallback(
+		(event: MessageEvent) => {
+			const message: ExtensionMessage = event.data
 
-		switch (message.type) {
-			case "openAiModels": {
-				const updatedModels = message.openAiModels ?? []
-				const currentApiKey = apiConfigurationRef.current?.openAiApiKey
+			switch (message.type) {
+				case "openAiModels": {
+					const updatedModels = message.openAiModels ?? []
+					const currentApiKey = apiConfigurationRef.current?.openAiApiKey
 
-				// Only process if this is for the token we're currently validating
-				if (currentApiKey && currentApiKey === lastValidatedKeyRef.current) {
-					if (updatedModels.length > 0) {
-						// Valid token - models were returned
-						setValidationStatus("valid")
-						setOpenAiModels(
-							Object.fromEntries(updatedModels.map((item) => [item, openAiModelInfoSaneDefaults])),
-						)
-					} else {
-						// Invalid token - no models returned
-						setValidationStatus("invalid")
-						setOpenAiModels(null)
+					// Only process if this is for the token we're currently validating
+					if (currentApiKey && currentApiKey === lastValidatedKeyRef.current) {
+						if (updatedModels.length > 0) {
+							// Valid token - models were returned
+							setValidationStatus("valid")
+							setOpenAiModels(
+								Object.fromEntries(updatedModels.map((item) => [item, openAiModelInfoSaneDefaults])),
+							)
+						} else {
+							// Invalid token - no models returned
+							setValidationStatus("invalid")
+							setOpenAiModels(null)
+						}
 					}
+					break
 				}
-				break
 			}
-		}
-	}, [])
+		},
+		[],
+	)
 
 	useEvent("message", onMessage)
 
+	// Set initial model when models are loaded and no model is selected
+	useEffect(() => {
+		if (openAiModels && Object.keys(openAiModels).length > 0 && !apiConfiguration?.openAiModelId) {
+			const firstModelId = Object.keys(openAiModels)[0]
+			setApiConfigurationField("openAiModelId", firstModelId)
+		}
+	}, [openAiModels, apiConfiguration?.openAiModelId, setApiConfigurationField])
+
 	// Cleanup timeouts on unmount
 	useEffect(() => {
+		const timeout = debounceTimeoutRef.current
 		return () => {
-			if (debounceTimeoutRef.current) {
-				clearTimeout(debounceTimeoutRef.current)
-			}
-			if (validationTimeoutRef.current) {
-				clearTimeout(validationTimeoutRef.current)
+			if (timeout) {
+				clearTimeout(timeout)
 			}
 		}
 	}, [])
