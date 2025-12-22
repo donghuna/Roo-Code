@@ -255,24 +255,6 @@ const WelcomeViewProvider = () => {
 								(e.target as HTMLInputElement)) as HTMLInputElement
 							setSelectedProvider(target.value as ProviderOption)
 						}}>
-						{/* Roo Code Cloud Provider Option */}
-						{/* <VSCodeRadio value="roo" className="flex items-start gap-2">
-							<div className="flex-1 space-y-1 cursor-pointer">
-								<p className="text-lg font-semibold block -mt-1">
-									{t("welcome:providerSignup.rooCloudProvider")}
-								</p>
-								<p className="text-base text-vscode-descriptionForeground mt-0">
-									{t("welcome:providerSignup.rooCloudDescription")} (
-									<VSCodeLink
-										href="https://roocode.com/provider/pricing?utm_source=extension&utm_medium=welcome-screen&utm_campaign=provider-signup&utm_content=learn-more"
-										className="cursor-pointer">
-										{t("welcome:providerSignup.learnMore")}
-									</VSCodeLink>
-									).
-								</p>
-							</div>
-						</VSCodeRadio> */}
-
 						{/* CodeMate Provider Option */}
 						<VSCodeRadio value="codemate" className="flex items-start gap-2">
 							<div className="flex-1 space-y-1 cursor-pointer">
