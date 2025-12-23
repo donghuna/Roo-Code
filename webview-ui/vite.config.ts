@@ -2,7 +2,7 @@ import path, { resolve } from "path"
 import fs from "fs"
 import { execSync } from "child_process"
 
-import { defineConfig, type PluginOption, type Plugin } from "vite"
+import { defineConfig, loadEnv, type PluginOption, type Plugin } from "vite"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 
@@ -53,6 +53,9 @@ const persistPortPlugin = (): Plugin => ({
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
+	// Load environment variables from .env files
+	const env = loadEnv(mode, process.cwd(), "")
+
 	let outDir = "../src/webview-ui/build"
 
 	const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "src", "package.json"), "utf8"))
@@ -64,7 +67,7 @@ export default defineConfig(({ mode }) => {
 		"process.env.PKG_NAME": JSON.stringify(pkg.name),
 		"process.env.PKG_VERSION": JSON.stringify(pkg.version),
 		"process.env.PKG_OUTPUT_CHANNEL": JSON.stringify("Roo-Code"),
-		"process.env.CODEMATE_BASE_URL": JSON.stringify(process.env.CODEMATE_BASE_URL || ""),
+		"process.env.CODEMATE_BASE_URL": JSON.stringify(env.CODEMATE_BASE_URL || process.env.CODEMATE_BASE_URL || ""),
 		...(gitSha ? { "process.env.PKG_SHA": JSON.stringify(gitSha) } : {}),
 	}
 

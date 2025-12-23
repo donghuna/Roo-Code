@@ -32,7 +32,7 @@ const WelcomeViewProvider = () => {
 	const manualUrlInputRef = useRef<HTMLInputElement | null>(null)
 	const [codemateSettings, setCodemateSettings] = useState<ProviderSettings>({
 		apiProvider: "openai",
-		openAiBaseUrl: process.env.CODEMATE_BASE_URL || "http://sw.samsungds.net:8008/v1/roo",
+		openAiBaseUrl: process.env.CODEMATE_BASE_URL || "http://im-light-prd.kspprd.dks.cloud.samsungds.net/v1/roo",
 		openAiModelId: "",
 	})
 
